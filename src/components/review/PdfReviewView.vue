@@ -1,39 +1,35 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount, nextTick } from "vue";
-import VuePdfEmbed from "vue-pdf-embed";
-import "vue-pdf-embed/dist/styles/annotationLayer.css";
-import "vue-pdf-embed/dist/styles/textLayer.css";
+import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from "vue";
+import PdfPage from "./PdfPage.vue";
 import PdfReviewSkeleton from "./PdfReviewSkeleton.vue";
 import PdfAnnotationLayer from "./PdfAnnotationLayer.vue";
+import { usePdf } from "@/composables/usePdf";
 import { useComments } from "@/composables/useComments";
 
 const PDF_URL = "/scope-of-work.pdf";
 
+const { numPages, loading, error } = usePdf(PDF_URL);
 const { setNumPages, closePopup } = useComments();
 
-const numPages = ref(0);
 const currentPage = ref(1);
 const containerWidth = ref(680);
 const scrollContainerRef = ref(null);
-const loading = ref(true);
-const error = ref(false);
 
 let isScrolling = false;
 let scrollTimer = null;
+let resizeObserver = null;
+let intersectionObserver = null;
 
-function handleRendered(args) {
-  if (!args?.source?.numPages) return;
-  const n = args.source.numPages;
-  numPages.value = n;
-  setNumPages(n);
-  loading.value = false;
-  nextTick(observePages);
-}
+const pageList = computed(() =>
+  Array.from({ length: numPages.value }, (_, i) => i + 1)
+);
 
-function handleLoadError() {
-  error.value = true;
-  loading.value = false;
-}
+watch(numPages, (n) => {
+  if (n > 0) {
+    setNumPages(n);
+    nextTick(observePages);
+  }
+});
 
 function scrollToPage(pageNumber) {
   isScrolling = true;
@@ -43,9 +39,6 @@ function scrollToPage(pageNumber) {
   const el = document.getElementById(`pdf-page-${pageNumber}`);
   el?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
-
-let resizeObserver = null;
-let intersectionObserver = null;
 
 function observePages() {
   const container = scrollContainerRef.value;
@@ -87,8 +80,6 @@ onBeforeUnmount(() => {
   intersectionObserver?.disconnect();
   if (scrollTimer) clearTimeout(scrollTimer);
 });
-
-const pages = (n) => Array.from({ length: n }, (_, i) => i + 1);
 </script>
 
 <template>
@@ -99,14 +90,14 @@ const pages = (n) => Array.from({ length: n }, (_, i) => i + 1);
       Failed to load PDF.
     </div>
 
-    <template v-if="!error">
+    <template v-if="!loading && !error && numPages > 0">
       <!-- Thumbnails sidebar -->
-      <aside v-show="!loading" class="w-48 shrink-0 flex flex-col gap-2 overflow-y-auto py-2 pr-2">
+      <aside class="w-48 shrink-0 flex flex-col gap-2 overflow-y-auto py-2 pr-2">
         <h2 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-2 pb-2">
           Pages
         </h2>
         <button
-          v-for="pageNumber in pages(numPages)"
+          v-for="pageNumber in pageList"
           :key="'thumb-' + pageNumber"
           type="button"
           :class="[
@@ -119,11 +110,11 @@ const pages = (n) => Array.from({ length: n }, (_, i) => i + 1);
           :aria-current="currentPage === pageNumber ? 'true' : undefined"
           @click="scrollToPage(pageNumber)"
         >
-          <VuePdfEmbed
+          <PdfPage
             :source="PDF_URL"
-            :page="pageNumber"
+            :page-number="pageNumber"
             :width="120"
-            class="w-full max-w-full flex items-center justify-center pointer-events-none"
+            class="mx-auto pointer-events-none"
           />
           <span class="block px-2 py-1 text-xs font-medium text-muted-foreground">
             Page {{ pageNumber }}
@@ -133,39 +124,28 @@ const pages = (n) => Array.from({ length: n }, (_, i) => i + 1);
 
       <!-- Main scrollable PDF pages -->
       <div
-        v-show="!loading"
         ref="scrollContainerRef"
         class="flex-1 min-w-0 overflow-y-auto pr-10 overflow-x-hidden bg-muted/30 rounded-lg"
         @click="closePopup()"
       >
         <div
-          v-for="pageNumber in pages(numPages)"
+          v-for="pageNumber in pageList"
           :key="'page-' + pageNumber"
           :id="'pdf-page-' + pageNumber"
           :data-pdf-page="pageNumber"
           class="relative flex justify-center px-4 py-4 border-b border-border last:border-b-0"
         >
-          <div class="relative">
-            <VuePdfEmbed
-              :source="PDF_URL"
-              :page="pageNumber"
-              :width="containerWidth"
-              text-layer
-              annotation-layer
-              class="shadow-sm bg-white"
-              @rendered="handleRendered"
-              @rendering-failed="handleLoadError"
-            />
+          <PdfPage
+            :source="PDF_URL"
+            :page-number="pageNumber"
+            :width="containerWidth"
+            text-layer
+            class="shadow-sm bg-white"
+          >
             <PdfAnnotationLayer :page-number="pageNumber" />
-          </div>
+          </PdfPage>
         </div>
       </div>
     </template>
   </div>
 </template>
-
-<style>
-.vue-pdf-embed > div {
-  margin-bottom: 0 !important;
-}
-</style>

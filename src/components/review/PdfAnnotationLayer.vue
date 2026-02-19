@@ -2,8 +2,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { Send } from "lucide-vue-next";
 import BaseButton from "@/components/ui/BaseButton.vue";
-import UserAvatar from "@/components/UserAvatar.vue";
-import CommentPopup from "./CommentPopup.vue";
+import CommentPin from "./CommentPin.vue";
 import MentionInput from "./MentionInput.vue";
 import { useComments } from "@/composables/useComments";
 
@@ -169,103 +168,3 @@ onBeforeUnmount(() => {
   </div>
 </template>
 
-<script>
-const CommentPin = {
-  name: "CommentPin",
-  components: { UserAvatar, CommentPopup },
-  props: {
-    comment: { type: Object, required: true },
-    isActive: { type: Boolean, default: false },
-  },
-  emits: ["open"],
-  setup(props, { emit }) {
-    const { closePopup } = useComments();
-    const hovered = ref(false);
-    return { hovered, closePopup };
-  },
-  computed: {
-    showHighlight() {
-      return this.hovered || this.isActive;
-    },
-  },
-  template: `
-    <template v-if="comment.highlight">
-      <!-- Highlight rects -->
-      <template v-if="showHighlight">
-        <template v-if="comment.highlight.rects.length > 0">
-          <div
-            v-for="(r, i) in comment.highlight.rects"
-            :key="'hl-' + comment.id + '-' + i"
-            :class="['absolute rounded-sm transition-opacity', isActive ? 'bg-primary/25' : 'bg-primary/15']"
-            :style="{
-              left: r.x + '%',
-              top: r.y + '%',
-              width: r.width + '%',
-              height: r.height + '%',
-              pointerEvents: 'none',
-            }"
-          />
-        </template>
-        <div
-          v-else
-          :class="['absolute inset-0 rounded-lg transition-opacity border-3', isActive ? 'border-primary/50' : 'border-primary/30']"
-          style="pointer-events: none"
-        />
-      </template>
-
-      <!-- Pin button -->
-      <div
-        class="absolute group"
-        :style="{
-          left: comment.highlight.pinX + '%',
-          top: comment.highlight.pinY + '%',
-          transform: 'translateY(-100%)',
-          pointerEvents: 'auto',
-          zIndex: isActive ? 9990 : 20,
-        }"
-      >
-        <button
-          type="button"
-          :class="[
-            'shadow-md cursor-pointer active:scale-95 p-1 rounded-t-full rounded-r-full border-2 transition-transform',
-            comment.resolved
-              ? 'size-8 flex items-center justify-center text-xs font-bold bg-green-100 text-green-700 border-green-300 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700'
-              : 'bg-gray-800 border-none',
-            isActive && 'ring-2 ring-primary ring-offset-2 scale-110',
-          ]"
-          @click.stop="isActive ? closePopup() : $emit('open')"
-          @mouseenter="hovered = true"
-          @mouseleave="hovered = false"
-        >
-          <template v-if="comment.resolved">{{ comment.author.avatarLetter }}</template>
-          <UserAvatar v-else :letter="comment.author.avatarLetter" />
-        </button>
-
-        <!-- Hover preview -->
-        <div
-          v-if="hovered && !isActive"
-          class="absolute left-10 top-0 w-56 rounded-md border border-border bg-popover shadow-lg p-2.5"
-          style="z-index: 9980"
-        >
-          <div class="flex items-center gap-1.5">
-            <UserAvatar :letter="comment.author.avatarLetter" size="xs" />
-            <span class="text-xs font-medium">{{ comment.author.name }}</span>
-            <span class="text-[10px] text-muted-foreground">{{ comment.timeAgo }}</span>
-          </div>
-          <p class="text-xs text-foreground/80 mt-1 line-clamp-2">{{ comment.body }}</p>
-          <p v-if="comment.replies.length > 0" class="text-[10px] text-primary mt-1">
-            {{ comment.replies.length }} repl{{ comment.replies.length === 1 ? 'y' : 'ies' }}
-          </p>
-        </div>
-
-        <!-- Active popup -->
-        <div v-if="isActive" class="absolute left-10 top-0" style="z-index: 9999">
-          <CommentPopup :comment="comment" />
-        </div>
-      </div>
-    </template>
-  `,
-};
-
-export default { components: { CommentPin } };
-</script>
