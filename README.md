@@ -2,6 +2,8 @@
 
 A collaborative Scope of Work (SOW) review tool re-implemented in Vue 3, migrated from an original Next.js codebase. Stakeholders can preview a PDF scope document, leave threaded comments with annotations pinned to specific text selections, and formally approve the scope.
 
+![ScopeFlow — Review workspace](public/screenshot.png)
+
 ## Running Locally
 
 **Prerequisites:** Node.js 20.19+ or 22.12+ (required by Vite 7)
