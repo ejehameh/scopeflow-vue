@@ -1,6 +1,6 @@
 # ScopeFlow
 
-A collaborative Scope of Work (SOW) review tool re-implemented in Vue 3, Clients can preview a PDF scope document, leave threaded comments with annotations pinned to specific text selections, and formally approve the scope.
+A collaborative Scope of Work (SOW) review tool built with Vue 3. Clients can preview a PDF scope document, leave threaded comments with annotations pinned to specific text selections, and formally approve the scope.
 
 ![ScopeFlow — Review workspace](public/screenshot.png)
 
@@ -42,15 +42,15 @@ The app runs at `http://localhost:5173` by default.
 
 ## Key Design Decisions
 
-**Direct `pdfjs-dist` over `vue-pdf-embed`** — We initially used `vue-pdf-embed` for PDF rendering but hit persistent issues: a loading deadlock where page count was only available after render, and blank canvases from worker configuration problems. Switching to `pdfjs-dist` directly (rendering to `<canvas>` elements with a composable) gave us full control over the rendering pipeline, text layer placement, and z-index stacking — closely mirroring how `react-pdf` works in the original Next.js app.
+**Direct `pdfjs-dist` over `vue-pdf-embed`** — I initially used `vue-pdf-embed` for PDF rendering but hit persistent issues: a loading deadlock where page count was only available after render, and blank canvases from worker configuration problems. Switching to `pdfjs-dist` directly (rendering to `<canvas>` elements with a composable) gave me full control over the rendering pipeline, text layer placement, and z-index stacking.
 
 **Composables for global state instead of Pinia** — The app has two pieces of shared state: theme preference and comment data. Both are simple enough that Vue composables with `ref`/`reactive` and `localStorage` persistence handle them cleanly without the overhead of a full store library. `useComments` and `useTheme` are imported directly where needed.
 
-**`<Teleport>` for all floating UI** — Comment popups, hover previews, emoji pickers, and dropdowns are all teleported to `document.body`. This avoids clipping from `overflow: hidden` ancestors and z-index stacking context issues that were especially problematic inside the scrollable PDF container.
+**`<Teleport>` for all floating UI** — Comment popups, hover previews, emoji pickers, and dropdowns are all teleported to `document.body`. This avoids clipping from `overflow: hidden` ancestors and z-index stacking context issues that are especially problematic inside the scrollable PDF container.
 
 **SFCs over inline template components** — Early iterations used inline Options API components with string templates for things like `CommentPin` and `MessageBubble`. These silently failed because Vite's default Vue build excludes the runtime template compiler. Converting everything to proper `.vue` SFCs resolved the rendering issues and is more idiomatic Vue 3.
 
-**CSS-variable theming inspired by shadcn/ui** — Rather than using a component library, we ported the shadcn/ui CSS variable system (`--background`, `--foreground`, `--primary`, etc.) into `style.css`. This gives us a consistent design language with dark mode support via a single `.dark` class toggle, while keeping the bundle lean.
+**CSS-variable theming inspired by shadcn/ui** — Rather than using a component library, I adopted the shadcn/ui CSS variable system (`--background`, `--foreground`, `--primary`, etc.) in `style.css`. This gives a consistent design language with dark mode support via a single `.dark` class toggle, while keeping the bundle lean.
 
 ## Assumptions
 
